@@ -1,0 +1,30 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    openssh-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY pyproject.toml ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -e .
+
+# Copy application code
+COPY backend ./backend
+COPY cli ./cli
+COPY alembic.ini ./
+
+# Create SSH socket directory
+RUN mkdir -p /var/run/sudoguard
+
+# Expose port
+EXPOSE 8080
+
+# Run migrations and start application
+CMD ["python", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8080"]
