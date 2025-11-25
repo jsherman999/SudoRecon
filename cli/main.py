@@ -2,7 +2,7 @@
 
 import click
 
-from cli.commands import logs, scan, servers
+from cli.commands import logs, provision, scan, servers
 
 
 @click.group()
@@ -32,6 +32,7 @@ def cli(ctx, api_url, api_key, output, quiet, verbose):
 cli.add_command(scan.scan)
 cli.add_command(servers.servers)
 cli.add_command(logs.logs)
+cli.add_command(provision.provision)
 
 
 if __name__ == "__main__":

@@ -21,6 +21,17 @@ from .log import (
     SudoLogResponse,
     SudoLogWithServer,
 )
+from .provision import (
+    BulkProvisionRequest,
+    BulkProvisionResponse,
+    JITAccessRequest,
+    JITAccessResponse,
+    ProvisionCreate,
+    ProvisionResponse,
+    ProvisionUpdate,
+    ProvisionWithServer,
+    RevokeProvisionRequest,
+)
 from .server import (
     AddGroupMembersRequest,
     ServerCreate,
@@ -60,4 +71,14 @@ __all__ = [
     "ScanOptions",
     "ScanJobResponse",
     "ScanJobDetail",
+    # Provision
+    "ProvisionCreate",
+    "ProvisionUpdate",
+    "ProvisionResponse",
+    "ProvisionWithServer",
+    "JITAccessRequest",
+    "JITAccessResponse",
+    "BulkProvisionRequest",
+    "BulkProvisionResponse",
+    "RevokeProvisionRequest",
 ]

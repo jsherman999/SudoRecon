@@ -260,3 +260,46 @@ def cancel_scan_job(
     db.commit()
 
     return {"message": "Job cancelled successfully"}
+
+
+@router.get("/jobs/{job_id}/stream")
+async def stream_scan_job(
+    job_id: str,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    """Stream scan job progress via Server-Sent Events."""
+    from fastapi.responses import StreamingResponse
+    import asyncio
+
+    async def event_generator():
+        """Generate SSE events for job progress."""
+        while True:
+            # Get job status
+            job = db.execute(select(ScanJob).where(ScanJob.id == job_id)).scalar_one_or_none()
+
+            if not job:
+                yield f"data: {{'error': 'Job not found'}}\n\n"
+                break
+
+            # Send progress update
+            data = {
+                "job_id": str(job.id),
+                "status": job.status,
+                "progress": job.progress,
+                "completed_hosts": job.completed_hosts,
+                "failed_hosts": job.failed_hosts,
+                "total_hosts": job.total_hosts,
+            }
+
+            import json
+            yield f"data: {json.dumps(data)}\n\n"
+
+            # Stop streaming if job is done
+            if job.status in [JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED]:
+                break
+
+            # Wait before next update
+            await asyncio.sleep(2)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")

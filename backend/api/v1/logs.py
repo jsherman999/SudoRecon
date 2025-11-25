@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import Response
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -220,3 +221,90 @@ def get_logs_by_user(
         db=db,
         current_user=current_user,
     )
+
+
+@router.get("/export")
+def export_logs(
+    format: str = Query(default="json", pattern="^(json|csv)$"),
+    q: Optional[str] = Query(default=None),
+    username: Optional[str] = Query(default=None),
+    hostname: Optional[str] = Query(default=None),
+    server_id: Optional[int] = Query(default=None),
+    result: Optional[str] = Query(default=None),
+    start_time: Optional[datetime] = Query(default=None),
+    end_time: Optional[datetime] = Query(default=None),
+    limit: int = Query(default=10000, le=100000),
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    """Export sudo logs in CSV or JSON format."""
+    from backend.utils.export import ExportUtility
+
+    # Build query
+    query = select(SudoLog, Server).join(Server, SudoLog.server_id == Server.id)
+
+    # Apply same filters as search
+    if q:
+        query = query.where(SudoLog.command.ilike(f"%{q}%"))
+    if username:
+        query = query.where(SudoLog.username == username)
+    if hostname:
+        query = query.where(
+            or_(
+                Server.hostname.ilike(f"%{hostname}%"),
+                Server.fqdn.ilike(f"%{hostname}%"),
+            )
+        )
+    if server_id:
+        query = query.where(SudoLog.server_id == server_id)
+    if result:
+        query = query.where(SudoLog.result == result.upper())
+    if start_time:
+        query = query.where(SudoLog.timestamp >= start_time)
+    if end_time:
+        query = query.where(SudoLog.timestamp <= end_time)
+
+    # Order and limit
+    query = query.order_by(SudoLog.timestamp.desc()).limit(limit)
+
+    # Execute
+    results = db.execute(query).all()
+
+    # Convert to dict
+    logs_data = []
+    for log, server in results:
+        logs_data.append({
+            "id": log.id,
+            "timestamp": log.timestamp,
+            "server_hostname": server.hostname,
+            "server_fqdn": server.fqdn,
+            "username": log.username,
+            "tty": log.tty,
+            "pwd": log.pwd,
+            "runas_user": log.runas_user,
+            "command": log.command,
+            "result": log.result,
+            "raw_log": log.raw_log,
+        })
+
+    # Export based on format
+    exporter = ExportUtility()
+
+    if format == "csv":
+        content = exporter.to_csv(logs_data, columns=[
+            "timestamp", "server_hostname", "username", "result", "command", "runas_user", "pwd", "tty"
+        ])
+        filename = exporter.generate_filename("sudo_logs", "csv")
+        return Response(
+            content=content,
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    else:  # json
+        content = exporter.to_json(logs_data, pretty=True)
+        filename = exporter.generate_filename("sudo_logs", "json")
+        return Response(
+            content=content,
+            media_type="application/json",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )

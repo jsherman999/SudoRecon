@@ -26,12 +26,22 @@ SudoGuard provides comprehensive sudo log collection, analysis, and access provi
 - [x] Log search API with filters
 - [x] Basic web UI (React + TypeScript)
 
-### 🚧 Phase 3: Provisioning (Planned)
-- [ ] Sudoers manipulation
-- [ ] Provision API (create, revoke)
-- [ ] AD/QAS integration
-- [ ] JIT access
-- [ ] Bulk provisioning
+### ✅ Phase 3: Provisioning (Complete)
+- [x] Sudoers manipulation - Safe file editing with validation
+- [x] Provision API - Full CRUD operations
+- [x] Provision service - Deployment and revocation via SSH
+- [x] JIT access - Time-limited grants with auto-expiry
+- [x] Bulk provisioning - Parallel deployment across servers
+- [x] Provision CLI - Grant, revoke, list, JIT commands
+- [x] Celery tasks - Background processing and maintenance
+
+### ✅ Phase 4: Advanced Features (Complete)
+- [x] Real-time updates - SSE streaming for scan job progress
+- [x] Export functionality - CSV/JSON log exports
+- [x] Audit logging - Comprehensive action tracking
+- [x] Enhanced dashboard - Statistics and recent activity
+- [x] Expiring provisions - Automatic detection and alerts
+- [x] Provision history - Complete audit trail
 
 ## Quick Start
 
@@ -288,3 +298,72 @@ SudoGuard Team
 ## Support
 
 For issues and questions, please open an issue on GitHub.
+
+### Provision Management
+
+```bash
+# List provisions
+sudoguard provision list
+
+# Grant sudo to a user
+sudoguard provision grant \
+  --server 1 \
+  --user jsmith \
+  --rule "ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart nginx" \
+  --expires "2024-12-31" \
+  --justification "Monthly maintenance" \
+  --ticket CHG0012345
+
+# Grant JIT access
+sudoguard provision jit \
+  --server 1 \
+  --user emergency_user \
+  --duration 60 \
+  --justification "Emergency production issue"
+
+# Revoke a provision
+sudoguard provision revoke 101 --reason "Access no longer needed"
+
+# Check expiring provisions
+sudoguard provision expiring --hours 24
+```
+
+
+### Provision API
+
+```bash
+# List provisions
+curl -H "X-API-Key: your-key" \
+  "http://localhost:8080/api/v1/provisions?status=active"
+
+# Create provision
+curl -X POST -H "X-API-Key: your-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "servers": [1, 2, 3],
+    "principal_type": "user",
+    "principal_name": "jsmith",
+    "sudo_rule": "ALL=(ALL) NOPASSWD: /usr/bin/systemctl",
+    "grant_end": "2024-12-31T23:59:59Z",
+    "justification": "Maintenance access"
+  }' \
+  http://localhost:8080/api/v1/provisions
+
+# Create JIT access
+curl -X POST -H "X-API-Key: your-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "server_id": 1,
+    "principal_type": "user",
+    "principal_name": "jsmith",
+    "duration_minutes": 60,
+    "justification": "Emergency access"
+  }' \
+  http://localhost:8080/api/v1/provisions/jit
+
+# Export logs
+curl -H "X-API-Key: your-key" \
+  "http://localhost:8080/api/v1/logs/export?format=csv&username=jsmith" \
+  -o sudo_logs.csv
+```
+
