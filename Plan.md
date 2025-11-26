@@ -6,7 +6,7 @@
 
 ## 1. Executive Summary
 
-This document outlines the complete design for **SudoGuard**, a centralized sudo management platform that provides:
+This document outlines the complete design for **SudoRecon**, a centralized sudo management platform that provides:
 
 - **Log Analysis**: Real-time and historical sudo log collection, parsing, and analysis
 - **Provisioning**: Just-in-time (JIT) and scheduled sudo access grants for users and AD groups
@@ -23,7 +23,7 @@ The application runs on a jump server with pre-established passwordless SSH acce
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              SUDOGUARD PLATFORM                              │
+│                              SUDORECON PLATFORM                              │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────────────────────┐  │
@@ -630,16 +630,16 @@ Content-Disposition: attachment; filename="sudo_logs_2024-01-15.csv"
 The application will create and manage SSH configurations for optimal performance:
 
 ```
-# /home/sudoguard/.ssh/config (managed by application)
+# /home/sudorecon/.ssh/config (managed by application)
 Host *
     ControlMaster auto
-    ControlPath /var/run/sudoguard/ssh-%r@%h:%p
+    ControlPath /var/run/sudorecon/ssh-%r@%h:%p
     ControlPersist 600
     ServerAliveInterval 30
     ServerAliveCountMax 3
     ConnectTimeout 10
     StrictHostKeyChecking accept-new
-    UserKnownHostsFile /var/lib/sudoguard/known_hosts
+    UserKnownHostsFile /var/lib/sudorecon/known_hosts
     BatchMode yes
     LogLevel ERROR
 ```
@@ -706,7 +706,7 @@ class SSHPoolManager:
 ### 6.1 Command Structure
 
 ```
-sudoguard [OPTIONS] COMMAND [ARGS]...
+sudorecon [OPTIONS] COMMAND [ARGS]...
 
 Options:
   --api-url TEXT      API base URL (default: http://localhost:8080)
@@ -734,33 +734,33 @@ Commands:
 
 ```bash
 # Scan a single server
-sudoguard scan single webserver01.example.com
+sudorecon scan single webserver01.example.com
 
 # Scan a single server with options
-sudoguard scan single webserver01.example.com \
+sudorecon scan single webserver01.example.com \
   --since "2024-01-01" \
   --until "2024-01-31" \
   --include-denied
 
 # Scan a group of servers
-sudoguard scan group production-web --threads 50
+sudorecon scan group production-web --threads 50
 
 # Scan from a file with progress display
-sudoguard scan file /path/to/servers.txt \
+sudorecon scan file /path/to/servers.txt \
   --threads 100 \
   --timeout 60 \
   --continue-on-error \
   --progress
 
 # Watch scan progress in real-time
-sudoguard scan watch 550e8400-e29b-41d4-a716-446655440000
+sudorecon scan watch 550e8400-e29b-41d4-a716-446655440000
 ```
 
 #### Provisioning Commands
 
 ```bash
 # Grant sudo to a user on a single server
-sudoguard provision grant \
+sudorecon provision grant \
   --server webserver01.example.com \
   --user jsmith \
   --rule "ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart nginx" \
@@ -768,72 +768,72 @@ sudoguard provision grant \
   --justification "Monthly maintenance"
 
 # Grant sudo to an AD group on multiple servers
-sudoguard provision grant \
+sudorecon provision grant \
   --group production-web \
   --ad-group "DOMAIN\\linux-admins" \
   --rule "ALL=(ALL) NOPASSWD: ALL" \
   --ticket CHG0012345
 
 # Create JIT access
-sudoguard provision jit \
+sudorecon provision jit \
   --server dbserver01.example.com \
   --user emergencyuser \
   --duration 60 \
   --notify ops@example.com
 
 # List active provisions
-sudoguard provision list --status active --expiring-within 7d
+sudorecon provision list --status active --expiring-within 7d
 
 # Revoke a provision
-sudoguard provision revoke 101 --reason "Access no longer needed"
+sudorecon provision revoke 101 --reason "Access no longer needed"
 
 # Bulk revoke by user
-sudoguard provision revoke-user jsmith --all-servers
+sudorecon provision revoke-user jsmith --all-servers
 ```
 
 #### Log Commands
 
 ```bash
 # Search logs
-sudoguard logs search "systemctl restart" --since "7 days ago"
+sudorecon logs search "systemctl restart" --since "7 days ago"
 
 # Search by user across all servers
-sudoguard logs search --user jsmith --limit 100
+sudorecon logs search --user jsmith --limit 100
 
 # Search by host
-sudoguard logs search --host "web*" --result DENY
+sudorecon logs search --host "web*" --result DENY
 
 # Export logs to CSV
-sudoguard logs export \
+sudorecon logs export \
   --since "2024-01-01" \
   --until "2024-01-31" \
   --format csv \
   --output /tmp/sudo_logs.csv
 
 # Show log statistics
-sudoguard logs stats --group production-web --since "30 days ago"
+sudorecon logs stats --group production-web --since "30 days ago"
 
 # Real-time log tail (requires websocket support)
-sudoguard logs tail --server webserver01.example.com
+sudorecon logs tail --server webserver01.example.com
 ```
 
 #### Server Management
 
 ```bash
 # List servers
-sudoguard servers list --status active
+sudorecon servers list --status active
 
 # Add a server
-sudoguard servers add webserver05.example.com
+sudorecon servers add webserver05.example.com
 
 # Add multiple servers from file
-sudoguard servers import /path/to/new_servers.txt
+sudorecon servers import /path/to/new_servers.txt
 
 # Remove a server
-sudoguard servers remove webserver05.example.com
+sudorecon servers remove webserver05.example.com
 
 # Check server connectivity
-sudoguard servers ping production-web --threads 20
+sudorecon servers ping production-web --threads 20
 ```
 
 ### 6.3 CLI Output Formats
@@ -841,7 +841,7 @@ sudoguard servers ping production-web --threads 20
 **Table Format (default):**
 
 ```
-$ sudoguard logs search --user jsmith --limit 3
+$ sudorecon logs search --user jsmith --limit 3
 
 ┌────────────────────────┬───────────────────┬────────┬─────────────────────────────────────┐
 │ Timestamp              │ Server            │ Result │ Command                             │
@@ -857,7 +857,7 @@ Showing 3 of 1,247 results
 **JSON Format:**
 
 ```bash
-$ sudoguard logs search --user jsmith --limit 1 --output json
+$ sudorecon logs search --user jsmith --limit 1 --output json
 ```
 
 ```json
@@ -915,7 +915,7 @@ $ sudoguard logs search --user jsmith --limit 1 --output json
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │  ┌────────────────────────────────────────────────────────────────────────────┐ │
-│  │  SUDOGUARD                               🔍 Search ID, Host, or Log...    │ │
+│  │  SUDORECON                               🔍 Search ID, Host, or Log...    │ │
 │  │  ══════════                              [________________________] [⚙️]  │ │
 │  └────────────────────────────────────────────────────────────────────────────┘ │
 │                                                                                  │
@@ -1262,7 +1262,7 @@ const defaultHighlightRules: HighlightRule[] = [
 ## 8. Project Structure
 
 ```
-sudoguard/
+sudorecon/
 ├── README.md
 ├── LICENSE
 ├── docker-compose.yml
@@ -1462,13 +1462,13 @@ sudoguard/
 │   └── backup.sh                  # Database backup
 │
 ├── config/
-│   ├── sudoguard.yaml.example     # Example config
+│   ├── sudorecon.yaml.example     # Example config
 │   ├── systemd/
-│   │   ├── sudoguard-api.service
-│   │   ├── sudoguard-worker.service
-│   │   └── sudoguard-beat.service
+│   │   ├── sudorecon-api.service
+│   │   ├── sudorecon-worker.service
+│   │   └── sudorecon-beat.service
 │   └── nginx/
-│       └── sudoguard.conf
+│       └── sudorecon.conf
 │
 └── docs/
     ├── installation.md
@@ -1548,7 +1548,7 @@ sudoguard/
 
 - Jump server runs with dedicated service account
 - SSH keys rotated on schedule
-- ControlMaster sockets in protected directory (`/var/run/sudoguard/`)
+- ControlMaster sockets in protected directory (`/var/run/sudorecon/`)
 - Strict host key verification
 - Connection audit logging
 
@@ -1612,11 +1612,11 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DATABASE_URL=postgresql://sudoguard:secret@db:5432/sudoguard
+      - DATABASE_URL=postgresql://sudorecon:secret@db:5432/sudorecon
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./backend:/app/backend
-      - ssh-sockets:/var/run/sudoguard
+      - ssh-sockets:/var/run/sudorecon
     depends_on:
       - db
       - redis
@@ -1626,11 +1626,11 @@ services:
       context: .
       dockerfile: Dockerfile.worker
     environment:
-      - DATABASE_URL=postgresql://sudoguard:secret@db:5432/sudoguard
+      - DATABASE_URL=postgresql://sudorecon:secret@db:5432/sudorecon
       - REDIS_URL=redis://redis:6379/0
     volumes:
-      - ssh-sockets:/var/run/sudoguard
-      - ssh-keys:/home/sudoguard/.ssh:ro
+      - ssh-sockets:/var/run/sudorecon
+      - ssh-keys:/home/sudorecon/.ssh:ro
     depends_on:
       - db
       - redis
@@ -1656,9 +1656,9 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_USER=sudoguard
+      - POSTGRES_USER=sudorecon
       - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=sudoguard
+      - POSTGRES_DB=sudorecon
     volumes:
       - postgres-data:/var/lib/postgresql/data
     ports:
@@ -1686,13 +1686,13 @@ volumes:
 
 |Metric                            |Type     |Description                    |
 |----------------------------------|---------|-------------------------------|
-|`sudoguard_scan_jobs_total`       |Counter  |Total scan jobs by status      |
-|`sudoguard_scan_duration_seconds` |Histogram|Scan job duration              |
-|`sudoguard_ssh_connections_active`|Gauge    |Active SSH connections         |
-|`sudoguard_provisions_active`     |Gauge    |Active sudo provisions         |
-|`sudoguard_logs_ingested_total`   |Counter  |Logs ingested per server       |
-|`sudoguard_api_requests_total`    |Counter  |API requests by endpoint/status|
-|`sudoguard_api_latency_seconds`   |Histogram|API response latency           |
+|`sudorecon_scan_jobs_total`       |Counter  |Total scan jobs by status      |
+|`sudorecon_scan_duration_seconds` |Histogram|Scan job duration              |
+|`sudorecon_ssh_connections_active`|Gauge    |Active SSH connections         |
+|`sudorecon_provisions_active`     |Gauge    |Active sudo provisions         |
+|`sudorecon_logs_ingested_total`   |Counter  |Logs ingested per server       |
+|`sudorecon_api_requests_total`    |Counter  |API requests by endpoint/status|
+|`sudorecon_api_latency_seconds`   |Histogram|API response latency           |
 
 ### 12.2 Logging (Structured JSON)
 
@@ -1700,7 +1700,7 @@ volumes:
 {
   "timestamp": "2024-01-15T14:32:18.123Z",
   "level": "INFO",
-  "service": "sudoguard-api",
+  "service": "sudorecon-api",
   "trace_id": "abc123",
   "span_id": "def456",
   "user": "jsmith",
@@ -1786,22 +1786,22 @@ SUDO_LOG_PATTERN = re.compile(
 %{domain}\\{groupname} ALL=(ALL) NOPASSWD: {commands}
 
 # Time-limited rule (with comment for tracking)
-# SUDOGUARD_PROVISION_ID={id} EXPIRES={expiry}
+# SUDORECON_PROVISION_ID={id} EXPIRES={expiry}
 {principal} ALL=(ALL) NOPASSWD: {commands}
 ```
 
 ### Appendix C: Configuration File Schema
 
 ```yaml
-# /etc/sudoguard/config.yaml
+# /etc/sudorecon/config.yaml
 app:
-  name: SudoGuard
+  name: SudoRecon
   version: 1.0.0
   debug: false
   log_level: INFO
 
 database:
-  url: postgresql://user:pass@localhost:5432/sudoguard
+  url: postgresql://user:pass@localhost:5432/sudorecon
   pool_size: 20
   max_overflow: 10
 
@@ -1809,9 +1809,9 @@ redis:
   url: redis://localhost:6379/0
   
 ssh:
-  user: sudoguard
-  key_path: /home/sudoguard/.ssh/id_rsa
-  control_path: /var/run/sudoguard/ssh-%r@%h:%p
+  user: sudorecon
+  key_path: /home/sudorecon/.ssh/id_rsa
+  control_path: /var/run/sudorecon/ssh-%r@%h:%p
   control_persist: 600
   connect_timeout: 10
   max_connections: 200
@@ -1842,4 +1842,4 @@ security:
 
 -----
 
-This document provides the complete technical specification for the SudoGuard application. Implementation should proceed according to the phased approach outlined in Section 9, with regular reviews and adjustments as development progresses.
+This document provides the complete technical specification for the SudoRecon application. Implementation should proceed according to the phased approach outlined in Section 9, with regular reviews and adjustments as development progresses.

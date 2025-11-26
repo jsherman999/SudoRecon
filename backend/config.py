@@ -1,4 +1,4 @@
-"""Configuration management for SudoGuard application."""
+"""Configuration management for SudoRecon application."""
 
 from functools import lru_cache
 from typing import List
@@ -18,14 +18,14 @@ class Settings(BaseSettings):
     )
 
     # Application
-    app_name: str = "SudoGuard"
+    app_name: str = "SudoRecon"
     app_version: str = "1.0.0"
     debug: bool = False
     log_level: str = "INFO"
 
     # Database
     database_url: PostgresDsn = Field(
-        default="postgresql://sudoguard:secret@localhost:5432/sudoguard"
+        default="postgresql://sudorecon:secret@localhost:5432/sudorecon"
     )
     db_pool_size: int = 20
     db_max_overflow: int = 10
@@ -47,9 +47,9 @@ class Settings(BaseSettings):
     api_key_hash_algorithm: str = "sha256"
 
     # SSH
-    ssh_user: str = "sudoguard"
-    ssh_key_path: str = "/home/sudoguard/.ssh/id_rsa"
-    ssh_control_path: str = "/var/run/sudoguard/ssh-%r@%h:%p"
+    ssh_user: str = "sudorecon"
+    ssh_key_path: str = "/home/sudorecon/.ssh/id_rsa"
+    ssh_control_path: str = "/var/run/sudorecon/ssh-%r@%h:%p"
     ssh_control_persist: int = 600
     ssh_connect_timeout: int = 10
     ssh_max_connections: int = 200

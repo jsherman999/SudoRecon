@@ -3,14 +3,14 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sudoguard"
+name = "sudorecon"
 version = "1.0.0"
 description = "Centralized sudo management and log analysis platform"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
-    {name = "SudoGuard Team"}
+    {name = "SudoRecon Team"}
 ]
 keywords = ["sudo", "security", "audit", "log-analysis", "provisioning"]
 classifiers = [
@@ -55,8 +55,8 @@ dev = [
 ]
 
 [project.scripts]
-sudoguard = "cli.main:cli"
-sudoguard-api = "backend.main:run"
+sudorecon = "cli.main:cli"
+sudorecon-api = "backend.main:run"
 
 [tool.black]
 line-length = 100

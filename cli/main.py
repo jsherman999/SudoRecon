@@ -1,4 +1,4 @@
-"""SudoGuard CLI main entry point."""
+"""SudoRecon CLI main entry point."""
 
 import click
 
@@ -6,8 +6,8 @@ from cli.commands import logs, provision, scan, servers
 
 
 @click.group()
-@click.option("--api-url", default="http://localhost:8080", help="API base URL")
-@click.option("--api-key", envvar="SUDOGUARD_API_KEY", help="API key for authentication")
+@click.option("--api-url", envvar="SUDORECON_API_URL", default="http://localhost:8080", help="API base URL")
+@click.option("--api-key", envvar="SUDORECON_API_KEY", help="API key for authentication")
 @click.option(
     "--output",
     type=click.Choice(["table", "json", "csv"]),
@@ -19,7 +19,7 @@ from cli.commands import logs, provision, scan, servers
 @click.version_option(version="1.0.0")
 @click.pass_context
 def cli(ctx, api_url, api_key, output, quiet, verbose):
-    """SudoGuard - Centralized sudo management and log analysis."""
+    """SudoRecon - Centralized sudo management and log analysis."""
     ctx.ensure_object(dict)
     ctx.obj["api_url"] = api_url
     ctx.obj["api_key"] = api_key

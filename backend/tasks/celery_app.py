@@ -9,7 +9,7 @@ settings = get_settings()
 
 # Create Celery app
 celery_app = Celery(
-    "sudoguard",
+    "sudorecon",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
 )

@@ -17,7 +17,7 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     # Startup
-    print("Starting up SudoGuard API...")
+    print("Starting up SudoRecon API...")
     # Initialize database tables (for development)
     # In production, use Alembic migrations
     try:
@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    print("Shutting down SudoGuard API...")
+    print("Shutting down SudoRecon API...")
 
 
 # Create FastAPI application

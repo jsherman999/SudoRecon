@@ -26,7 +26,7 @@ def single(ctx, hostname, since, until, include_denied):
     api_key = ctx.obj["api_key"]
 
     if not api_key:
-        click.echo("Error: API key required. Set SUDOGUARD_API_KEY or use --api-key", err=True)
+        click.echo("Error: API key required. Set SUDORECON_API_KEY or use --api-key", err=True)
         raise click.Abort()
 
     # Prepare request

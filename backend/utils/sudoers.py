@@ -12,14 +12,14 @@ from backend.models.provision import PrincipalType
 class SudoersManager:
     """Manages sudoers file manipulation safely."""
 
-    SUDOGUARD_MARKER = "# SUDOGUARD_MANAGED"
-    PROVISION_PREFIX = "# SUDOGUARD_PROVISION_ID="
+    SUDORECON_MARKER = "# SUDORECON_MANAGED"
+    PROVISION_PREFIX = "# SUDORECON_PROVISION_ID="
 
-    def __init__(self, sudoers_path: str = "/etc/sudoers.d/sudoguard"):
+    def __init__(self, sudoers_path: str = "/etc/sudoers.d/sudorecon"):
         """Initialize sudoers manager.
 
         Args:
-            sudoers_path: Path to sudoers file (default: /etc/sudoers.d/sudoguard)
+            sudoers_path: Path to sudoers file (default: /etc/sudoers.d/sudorecon)
         """
         self.sudoers_path = Path(sudoers_path)
 
@@ -84,7 +84,7 @@ class SudoersManager:
         return None
 
     def read_rules(self) -> List[Tuple[int, str]]:
-        """Read all SudoGuard-managed rules from file.
+        """Read all SudoRecon-managed rules from file.
 
         Returns:
             List of (provision_id, rule_text) tuples
@@ -176,8 +176,8 @@ class SudoersManager:
 
         # Write back filtered rules
         with open(self.sudoers_path, "w") as f:
-            f.write(f"{self.SUDOGUARD_MARKER}\n")
-            f.write("# Managed by SudoGuard - DO NOT EDIT MANUALLY\n\n")
+            f.write(f"{self.SUDORECON_MARKER}\n")
+            f.write("# Managed by SudoRecon - DO NOT EDIT MANUALLY\n\n")
             for _, rule_text in filtered_rules:
                 f.write(rule_text + "\n\n")
 
@@ -232,8 +232,8 @@ class SudoersManager:
 
         # Create file with header
         with open(self.sudoers_path, "w") as f:
-            f.write(f"{self.SUDOGUARD_MARKER}\n")
-            f.write("# Managed by SudoGuard - DO NOT EDIT MANUALLY\n")
+            f.write(f"{self.SUDORECON_MARKER}\n")
+            f.write("# Managed by SudoRecon - DO NOT EDIT MANUALLY\n")
             f.write(f"# Created: {datetime.now().isoformat()}\n\n")
 
         # Set proper permissions (0440)

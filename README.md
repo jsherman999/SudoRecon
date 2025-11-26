@@ -1,10 +1,10 @@
-# SudoGuard
+# SudoRecon
 
 Centralized sudo management and log analysis platform.
 
 ## Overview
 
-SudoGuard provides comprehensive sudo log collection, analysis, and access provisioning across your infrastructure through three interfaces:
+SudoRecon provides comprehensive sudo log collection, analysis, and access provisioning across your infrastructure through three interfaces:
 
 - **REST API** - FastAPI-based backend for programmatic access
 - **CLI Tool** - Command-line interface for interactive use
@@ -71,6 +71,18 @@ Services will be available at:
 - Web UI: http://localhost:3000
 - API Docs: http://localhost:8080/api/docs
 
+### Deployment on RHEL 9
+
+For production deployment on RHEL 9, see our comprehensive deployment guide:
+
+**[📖 DEPLOYMENT_RHEL9.md](DEPLOYMENT_RHEL9.md)**
+
+Two deployment methods available:
+1. **Python venv** - Traditional deployment with systemd services
+2. **Podman** - Containerized deployment with rootless containers
+
+Quick start guide also available: **[🚀 QUICKSTART.md](QUICKSTART.md)**
+
 ### Manual Setup
 
 1. **Install backend dependencies:**
@@ -120,42 +132,42 @@ npm run dev
 
 ```bash
 # List servers
-sudoguard servers list
+sudorecon servers list
 
 # Add a server
-sudoguard servers add webserver01.example.com
+sudorecon servers add webserver01.example.com
 
 # Remove a server
-sudoguard servers remove 1
+sudorecon servers remove 1
 ```
 
 ### Scanning
 
 ```bash
 # Scan a single server
-sudoguard scan single webserver01.example.com
+sudorecon scan single webserver01.example.com
 
 # Scan a server group
-sudoguard scan group 1 --threads 50
+sudorecon scan group 1 --threads 50
 
 # Check scan job status
-sudoguard scan status <job-id>
+sudorecon scan status <job-id>
 ```
 
 ### Log Search
 
 ```bash
 # Search logs
-sudoguard logs search "systemctl restart"
+sudorecon logs search "systemctl restart"
 
 # Filter by user
-sudoguard logs search --user jsmith
+sudorecon logs search --user jsmith
 
 # Filter by result
-sudoguard logs search --result DENY
+sudorecon logs search --result DENY
 
 # View statistics
-sudoguard logs stats
+sudorecon logs stats
 ```
 
 ## API Documentation
@@ -185,7 +197,7 @@ curl -H "X-API-Key: your-key" \
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      SUDOGUARD PLATFORM                      │
+│                      SUDORECON PLATFORM                      │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │  ┌──────────┐    ┌──────────┐    ┌──────────────────────┐  │
@@ -272,8 +284,8 @@ Configuration is managed through environment variables or `.env` file:
 |----------|---------|-------------|
 | `DATABASE_URL` | `postgresql://...` | PostgreSQL connection string |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis connection string |
-| `SSH_USER` | `sudoguard` | SSH username for connections |
-| `SSH_KEY_PATH` | `/home/sudoguard/.ssh/id_rsa` | Path to SSH private key |
+| `SSH_USER` | `sudorecon` | SSH username for connections |
+| `SSH_KEY_PATH` | `/home/sudorecon/.ssh/id_rsa` | Path to SSH private key |
 | `JWT_SECRET` | `change-me-in-production` | JWT signing secret |
 | `API_PORT` | `8080` | API server port |
 
@@ -293,7 +305,7 @@ MIT
 
 ## Contributors
 
-SudoGuard Team
+SudoRecon Team
 
 ## Support
 
@@ -303,10 +315,10 @@ For issues and questions, please open an issue on GitHub.
 
 ```bash
 # List provisions
-sudoguard provision list
+sudorecon provision list
 
 # Grant sudo to a user
-sudoguard provision grant \
+sudorecon provision grant \
   --server 1 \
   --user jsmith \
   --rule "ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart nginx" \
@@ -315,17 +327,17 @@ sudoguard provision grant \
   --ticket CHG0012345
 
 # Grant JIT access
-sudoguard provision jit \
+sudorecon provision jit \
   --server 1 \
   --user emergency_user \
   --duration 60 \
   --justification "Emergency production issue"
 
 # Revoke a provision
-sudoguard provision revoke 101 --reason "Access no longer needed"
+sudorecon provision revoke 101 --reason "Access no longer needed"
 
 # Check expiring provisions
-sudoguard provision expiring --hours 24
+sudorecon provision expiring --hours 24
 ```
 
 
