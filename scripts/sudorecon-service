@@ -1,0 +1,120 @@
+#!/bin/bash
+#
+# SudoRecon Service Management Script
+# Usage: sudorecon-service {start|stop|restart|status|logs|health}
+#
+
+set -e
+
+SERVICES=("sudorecon-api" "sudorecon-worker" "sudorecon-beat")
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+function print_status() {
+    local service=$1
+    local status=$(systemctl is-active "$service" 2>/dev/null || echo "inactive")
+    
+    if [ "$status" = "active" ]; then
+        echo -e "${GREEN}✓${NC} $service: ${GREEN}running${NC}"
+    else
+        echo -e "${RED}✗${NC} $service: ${RED}$status${NC}"
+    fi
+}
+
+function check_health() {
+    echo "Checking SudoRecon health..."
+    echo
+    
+    # Check services
+    echo "=== Services ==="
+    for service in "${SERVICES[@]}"; do
+        print_status "$service"
+    done
+    echo
+    
+    # Check database connection
+    echo "=== Database ==="
+    if sudo -u sudorecon psql -h localhost -U sudorecon sudorecon -c "SELECT 1;" &>/dev/null; then
+        echo -e "${GREEN}✓${NC} PostgreSQL: connected"
+    else
+        echo -e "${RED}✗${NC} PostgreSQL: connection failed"
+    fi
+    echo
+    
+    # Check Redis
+    echo "=== Redis ==="
+    if redis-cli ping &>/dev/null; then
+        echo -e "${GREEN}✓${NC} Redis: connected"
+    else
+        echo -e "${RED}✗${NC} Redis: connection failed"
+    fi
+    echo
+    
+    # Check API endpoint
+    echo "=== API Health ==="
+    if curl -sf http://localhost:8080/health &>/dev/null; then
+        echo -e "${GREEN}✓${NC} API: responding"
+    else
+        echo -e "${RED}✗${NC} API: not responding"
+    fi
+    echo
+    
+    # Check disk space
+    echo "=== Disk Space ==="
+    df -h /var/log/sudorecon /opt/sudorecon | tail -n +2
+    echo
+    
+    # Check process counts
+    echo "=== Processes ==="
+    echo "API workers: $(pgrep -fc 'gunicorn.*sudorecon')"
+    echo "Celery workers: $(pgrep -fc 'celery.*worker')"
+    echo
+}
+
+function show_logs() {
+    local service=${1:-sudorecon-api}
+    local lines=${2:-50}
+    echo "Showing last $lines lines from $service..."
+    sudo journalctl -u "$service" -n "$lines" --no-pager
+}
+
+case "${1:-}" in
+    start)
+        echo "Starting SudoRecon services..."
+        for service in "${SERVICES[@]}"; do
+            sudo systemctl start "$service"
+            echo "Started $service"
+        done
+        ;;
+    stop)
+        echo "Stopping SudoRecon services..."
+        for service in $(echo "${SERVICES[@]}" | tac -s ' '); do
+            sudo systemctl stop "$service"
+            echo "Stopped $service"
+        done
+        ;;
+    restart)
+        echo "Restarting SudoRecon services..."
+        for service in $(echo "${SERVICES[@]}" | tac -s ' '); do
+            sudo systemctl restart "$service"
+            echo "Restarted $service"
+        done
+        ;;
+    status)
+        for service in "${SERVICES[@]}"; do
+            print_status "$service"
+        done
+        ;;
+    health)
+        check_health
+        ;;
+    logs)
+        show_logs "${2:-sudorecon-api}" "${3:-50}"
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status|logs [service] [lines]|health}"
+        exit 1
+        ;;
+esac

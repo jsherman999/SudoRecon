@@ -1,0 +1,30 @@
+# SudoRecon Maintenance Cron Jobs
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# Database maintenance (daily at 2 AM)
+0 2 * * * root /usr/local/bin/sudorecon-db-maint vacuum >> /var/log/sudorecon/cron.log 2>&1
+
+# Database statistics (daily at 6 AM)
+0 6 * * * root /usr/local/bin/sudorecon-db-maint stats >> /var/log/sudorecon/cron.log 2>&1
+
+# Backup database (daily at 1 AM)
+0 1 * * * root /usr/local/bin/sudorecon-backup database >> /var/log/sudorecon/backup.log 2>&1
+
+# Backup configuration (weekly on Sunday at 3 AM)
+0 3 * * 0 root /usr/local/bin/sudorecon-backup config >> /var/log/sudorecon/backup.log 2>&1
+
+# Health check (every 5 minutes)
+*/5 * * * * root /usr/local/bin/sudorecon-healthcheck --nagios >> /var/log/sudorecon/health.log 2>&1
+
+# Clean old logs (daily at 4 AM)
+0 4 * * * root find /var/log/sudorecon -name "*.log.*" -mtime +30 -delete
+
+# Clean old SSH sockets (hourly)
+0 * * * * sudorecon find /var/run/sudorecon -name "ssh-*" -mtime +1 -delete 2>/dev/null
+
+# Monitor disk space (every hour)
+0 * * * * root df -h /var/log/sudorecon | tail -1 | awk '{if(int($5) > 80) print "WARNING: Disk usage at "$5}' | logger -t sudorecon
+
+# Cleanup old scan jobs (weekly on Monday at 2 AM)
+0 2 * * 1 root /usr/local/bin/sudorecon-db-maint cleanup 90 >> /var/log/sudorecon/cleanup.log 2>&1

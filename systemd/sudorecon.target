@@ -1,0 +1,8 @@
+[Unit]
+Description=SudoRecon Application Stack
+Documentation=https://github.com/jsherman999/SudoRecon
+Wants=postgresql-15.service redis.service
+After=postgresql-15.service redis.service
+
+[Install]
+WantedBy=multi-user.target

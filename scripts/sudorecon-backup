@@ -1,0 +1,120 @@
+#!/bin/bash
+#
+# SudoRecon Backup Script
+# Backs up database and configuration files
+#
+
+set -e
+
+BACKUP_DIR="/var/backups/sudorecon"
+RETENTION_DAYS=30
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+DB_NAME="sudorecon"
+DB_USER="sudorecon"
+
+# Create backup directory
+mkdir -p "$BACKUP_DIR"
+
+function backup_database() {
+    echo "Backing up database..."
+    local backup_file="$BACKUP_DIR/sudorecon_db_$TIMESTAMP.sql.gz"
+    
+    sudo -u postgres pg_dump "$DB_NAME" | gzip > "$backup_file"
+    
+    echo "Database backup created: $backup_file"
+    echo "Size: $(du -h "$backup_file" | cut -f1)"
+}
+
+function backup_config() {
+    echo "Backing up configuration..."
+    local backup_file="$BACKUP_DIR/sudorecon_config_$TIMESTAMP.tar.gz"
+    
+    tar czf "$backup_file" \
+        /etc/sudorecon \
+        /opt/sudorecon/.ssh/known_hosts \
+        /etc/systemd/system/sudorecon-*.service \
+        2>/dev/null || true
+    
+    echo "Config backup created: $backup_file"
+}
+
+function backup_logs() {
+    echo "Backing up recent logs..."
+    local backup_file="$BACKUP_DIR/sudorecon_logs_$TIMESTAMP.tar.gz"
+    
+    find /var/log/sudorecon -name "*.log" -mtime -7 -exec \
+        tar czf "$backup_file" {} + 2>/dev/null || true
+    
+    echo "Log backup created: $backup_file"
+}
+
+function cleanup_old_backups() {
+    echo "Cleaning up backups older than $RETENTION_DAYS days..."
+    find "$BACKUP_DIR" -name "sudorecon_*" -mtime "+$RETENTION_DAYS" -delete
+    echo "Cleanup complete"
+}
+
+function list_backups() {
+    echo "Available backups:"
+    ls -lh "$BACKUP_DIR" | tail -n +2
+}
+
+function restore_database() {
+    local backup_file=$1
+    
+    if [ ! -f "$backup_file" ]; then
+        echo "Error: Backup file not found: $backup_file"
+        exit 1
+    fi
+    
+    echo "WARNING: This will restore the database from backup!"
+    echo "Database: $DB_NAME"
+    echo "Backup: $backup_file"
+    read -p "Continue? (yes/no): " confirm
+    
+    if [ "$confirm" != "yes" ]; then
+        echo "Restore cancelled"
+        exit 0
+    fi
+    
+    echo "Stopping services..."
+    sudo systemctl stop sudorecon-worker sudorecon-beat sudorecon-api
+    
+    echo "Restoring database..."
+    gunzip < "$backup_file" | sudo -u postgres psql "$DB_NAME"
+    
+    echo "Starting services..."
+    sudo systemctl start sudorecon-api sudorecon-worker sudorecon-beat
+    
+    echo "Restore complete"
+}
+
+case "${1:-full}" in
+    database|db)
+        backup_database
+        cleanup_old_backups
+        ;;
+    config)
+        backup_config
+        cleanup_old_backups
+        ;;
+    logs)
+        backup_logs
+        cleanup_old_backups
+        ;;
+    full)
+        backup_database
+        backup_config
+        cleanup_old_backups
+        ;;
+    list)
+        list_backups
+        ;;
+    restore)
+        restore_database "$2"
+        ;;
+    *)
+        echo "Usage: $0 {database|config|logs|full|list|restore <file>}"
+        exit 1
+        ;;
+esac

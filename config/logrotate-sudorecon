@@ -1,0 +1,28 @@
+/var/log/sudorecon/*.log {
+    daily
+    rotate 30
+    compress
+    delaycompress
+    notifempty
+    missingok
+    create 0640 sudorecon sudorecon
+    sharedscripts
+    postrotate
+        systemctl reload sudorecon-api >/dev/null 2>&1 || true
+        systemctl reload sudorecon-worker >/dev/null 2>&1 || true
+    endscript
+}
+
+/var/log/sudorecon/api-access.log {
+    daily
+    rotate 90
+    compress
+    delaycompress
+    notifempty
+    missingok
+    create 0640 sudorecon sudorecon
+    size 100M
+    postrotate
+        systemctl reload sudorecon-api >/dev/null 2>&1 || true
+    endscript
+}

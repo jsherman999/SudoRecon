@@ -1,0 +1,58 @@
+#!/bin/bash
+#
+# Display application statistics
+#
+
+sudo -u sudorecon /opt/sudorecon/app/venv/bin/python << 'EOF'
+from backend.db.session import SessionLocal
+from backend.models import Server, SudoLog, ScanJob, SudoProvision
+from sqlalchemy import func
+from datetime import datetime, timedelta
+
+db = SessionLocal()
+
+try:
+    print("=== SudoRecon Statistics ===\n")
+    
+    # Server counts
+    total_servers = db.query(func.count(Server.id)).scalar()
+    print(f"Total Servers: {total_servers}")
+    
+    # Log counts
+    total_logs = db.query(func.count(SudoLog.id)).scalar()
+    logs_24h = db.query(func.count(SudoLog.id)).filter(
+        SudoLog.created_at > datetime.utcnow() - timedelta(hours=24)
+    ).scalar()
+    print(f"Total Logs: {total_logs:,}")
+    print(f"Logs (24h): {logs_24h:,}")
+    
+    # Scan job stats
+    jobs_pending = db.query(func.count(ScanJob.id)).filter(
+        ScanJob.status == 'pending'
+    ).scalar()
+    jobs_running = db.query(func.count(ScanJob.id)).filter(
+        ScanJob.status == 'running'
+    ).scalar()
+    print(f"Scan Jobs Pending: {jobs_pending}")
+    print(f"Scan Jobs Running: {jobs_running}")
+    
+    # Provision stats
+    active_provisions = db.query(func.count(SudoProvision.id)).filter(
+        SudoProvision.status == 'active'
+    ).scalar()
+    print(f"Active Provisions: {active_provisions}")
+    
+    print("\n=== Top 5 Active Servers (by log count) ===")
+    top_servers = db.query(
+        Server.hostname,
+        func.count(SudoLog.id).label('log_count')
+    ).join(SudoLog).group_by(Server.id).order_by(
+        func.count(SudoLog.id).desc()
+    ).limit(5).all()
+    
+    for server, count in top_servers:
+        print(f"  {server}: {count:,} logs")
+    
+finally:
+    db.close()
+EOF

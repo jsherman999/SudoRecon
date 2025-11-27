@@ -1,0 +1,125 @@
+#!/bin/bash
+#
+# SudoRecon Health Check
+# Comprehensive health monitoring
+#
+
+set -e
+
+NAGIOS_MODE=false
+EXIT_OK=0
+EXIT_WARNING=1
+EXIT_CRITICAL=2
+EXIT_UNKNOWN=3
+
+function check_service() {
+    local service=$1
+    if systemctl is-active "$service" &>/dev/null; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+function check_api() {
+    local response=$(curl -sf -w "%{http_code}" http://localhost:8080/health -o /dev/null 2>&1)
+    [ "$response" = "200" ]
+}
+
+function check_database() {
+    sudo -u sudorecon psql -h localhost -U sudorecon sudorecon -c "SELECT 1;" &>/dev/null
+}
+
+function check_redis() {
+    redis-cli ping &>/dev/null
+}
+
+function check_disk_space() {
+    local usage=$(df /var/log/sudorecon | tail -1 | awk '{print $5}' | sed 's/%//')
+    [ "$usage" -lt 90 ]
+}
+
+function check_memory() {
+    local available=$(free -m | awk 'NR==2 {print $7}')
+    [ "$available" -gt 500 ]
+}
+
+function run_checks() {
+    local exit_code=$EXIT_OK
+    local messages=()
+    
+    # Check services
+    if ! check_service sudorecon-api; then
+        messages+=("API service not running")
+        exit_code=$EXIT_CRITICAL
+    fi
+    
+    if ! check_service sudorecon-worker; then
+        messages+=("Worker service not running")
+        exit_code=$EXIT_CRITICAL
+    fi
+    
+    if ! check_service sudorecon-beat; then
+        messages+=("Beat service not running")
+        exit_code=$EXIT_WARNING
+    fi
+    
+    # Check API endpoint
+    if ! check_api; then
+        messages+=("API not responding")
+        exit_code=$EXIT_CRITICAL
+    fi
+    
+    # Check database
+    if ! check_database; then
+        messages+=("Database connection failed")
+        exit_code=$EXIT_CRITICAL
+    fi
+    
+    # Check Redis
+    if ! check_redis; then
+        messages+=("Redis connection failed")
+        exit_code=$EXIT_CRITICAL
+    fi
+    
+    # Check disk space
+    if ! check_disk_space; then
+        messages+=("Disk space critical")
+        exit_code=$EXIT_WARNING
+    fi
+    
+    # Check memory
+    if ! check_memory; then
+        messages+=("Memory low")
+        exit_code=$EXIT_WARNING
+    fi
+    
+    # Output results
+    if [ "$NAGIOS_MODE" = true ]; then
+        if [ $exit_code -eq $EXIT_OK ]; then
+            echo "OK - All checks passed"
+        elif [ $exit_code -eq $EXIT_WARNING ]; then
+            echo "WARNING - ${messages[@]}"
+        else
+            echo "CRITICAL - ${messages[@]}"
+        fi
+    else
+        if [ $exit_code -eq $EXIT_OK ]; then
+            echo "✓ All health checks passed"
+        else
+            echo "✗ Health check failed:"
+            for msg in "${messages[@]}"; do
+                echo "  - $msg"
+            done
+        fi
+    fi
+    
+    exit $exit_code
+}
+
+# Parse arguments
+if [ "${1:-}" = "--nagios" ]; then
+    NAGIOS_MODE=true
+fi
+
+run_checks
